@@ -27,10 +27,6 @@ ifdef UBOOT_USE_BINMAN
 endif
 
 ifdef UBOOT_USE_INTREE_DTC
-  $(eval $(call TestHostCommand,swig, \
-    Please install the swig package, \
-    swig -version))
-
   $(eval $(call TestHostCommand,python3-dev, \
     Please install the python3-dev package, \
     python3.11-config --includes 2>&1 | grep 'python3', \
@@ -39,6 +35,14 @@ ifdef UBOOT_USE_INTREE_DTC
     python3.8-config --includes 2>&1 | grep 'python3', \
     python3.7-config --includes 2>&1 | grep 'python3', \
     python3-config --includes 2>&1 | grep -E 'python3\.([7-9]|[0-9][0-9])\.?'))
+
+  $(eval $(call TestHostCommand,python3-setuptools, \
+    Please install the Python3 setuptools module, \
+    $(STAGING_DIR_HOST)/bin/python3 -c 'import setuptools'))
+
+  $(eval $(call TestHostCommand,swig, \
+    Please install the swig package, \
+    swig -version))
 endif
 
 export GCC_HONOUR_COPTS=s
@@ -65,6 +69,7 @@ endef
 TARGET_DEP = TARGET_$(BUILD_TARGET)$(if $(BUILD_SUBTARGET),_$(BUILD_SUBTARGET))
 
 UBOOT_MAKE_FLAGS = \
+	PATH=$(STAGING_DIR_HOST)/bin:$(PATH) \
 	HOSTCC="$(HOSTCC)" \
 	HOSTCFLAGS="$(HOST_CFLAGS) $(HOST_CPPFLAGS) -std=gnu11" \
 	HOSTLDFLAGS="$(HOST_LDFLAGS)" \
@@ -105,10 +110,10 @@ define Build/U-Boot/Target
 endef
 
 define Build/Configure/U-Boot
-	+$(MAKE) $(PKG_JOBS) -C $(PKG_BUILD_DIR) $(UBOOT_CONFIGURE_VARS) $(UBOOT_CONFIG)_config
+	+$(MAKE) $(PKG_JOBS) -C $(PKG_BUILD_DIR) CROSS_COMPILE=$(TARGET_CROSS) $(UBOOT_CONFIGURE_VARS) $(UBOOT_CONFIG)_config
 	$(if $(strip $(UBOOT_CUSTOMIZE_CONFIG)),
 		$(PKG_BUILD_DIR)/scripts/config --file $(PKG_BUILD_DIR)/.config $(UBOOT_CUSTOMIZE_CONFIG)
-		+$(MAKE) $(PKG_JOBS) -C $(PKG_BUILD_DIR) $(UBOOT_CONFIGURE_VARS) oldconfig)
+		+$(MAKE) $(PKG_JOBS) -C $(PKG_BUILD_DIR) CROSS_COMPILE=$(TARGET_CROSS) $(UBOOT_CONFIGURE_VARS) oldconfig)
 endef
 
 ifndef UBOOT_USE_INTREE_DTC
